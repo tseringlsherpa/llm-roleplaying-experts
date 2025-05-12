@@ -1,0 +1,122 @@
+---
+title: "LLM_Strat"
+author: "Tsering Sherpa"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "/Users/tsering/Desktop/CSE581 Data/llm-roleplay")
+```
+### LLM roleplaying
+The main question we want to focus on from this study's research is "To what extent does the alignment of partisanship between LLMs and the audience enhance the persuasiveness of roleplaying LLMs compared to a misaligned LLM (RQ1a)
+or a non-role-playing LLM (RQ1b)?"
+
+By focusing on the alignment of partisanship between LLMs and the audience, if the partisanship is aligned we can infer what would happen under a Bayesian Persuasion framework where the LLM is able to update its beliefs based on the participant's political affiliation. 
+
+###Sample in this Paper
+"Participants were recruited using the online crowdsourcing platforms Prolific and Lucid Theorem. Participants were
+screened such that all were located in the U.S., spoke English as their
+first language, were over the age of 18, and had completed at least
+a high-school education. The full sample was balanced with respect
+to sex and partisan affiliation (Democrat or Republican). Data
+from participants who failed two pre-treatment attention checks
+were excluded from the analysis. List-wise deletion was employed
+for any missing or incomplete data. In total, 66 participants who
+passed the initial pre-treatment attention checks dropped out before
+providing a dependent variable response, resulting in an attrition
+rate of 1.4%; importantly, however, we found no evidence that these
+dropouts were differential across condition and treatment issue (see
+Supplementary Materials Section 8).
+This resulted in a final sample size of 4,955 participants (2,501
+Republicans and 2,454 Democrats; 3,707 from Prolific, 1,248 from
+Lucid). For a description of the power analysis conducted and a
+detailed description of the sample composition along demographic
+traits measured in this study, consult the Supplementary Materials
+Section 5"
+
+Load in data
+```{r}
+data<-read.csv("data/final_dataset.csv")
+```
+
+Load libraries
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(pheatmap)
+library(stringr)
+```
+we could focus on the LLM that doesn't roleplay as either party and just attempts to persuade participants as a control.
+
+for the BP framework, we can focus on the LLM that was in fact aligned correctly with the partcipant's polical affiliation.
+###Data set treatments
+```{r}
+table(data$treatment)
+```
+#### Cleaning: We only use data relevant for AI (no human or control), this is all the LLM messages.
+```{r}
+# Keep only AI-related conditions
+data_ai <- subset(data, treatment %in% c("repub", "dem", "no role-play"))
+```
+Results in 3,298 observations. Can be used as a target for understanding the LLM when it doesn't know the political stance of the participant. 
+
+Drop unnecessary variables for our analysis
+```{r}
+data_ai_clean <- data_ai %>%
+  select(
+    -StartDate,
+    -EndDate,
+    -attention_check_1,
+    -attention_check_2
+  )
+```
+
+####Create data sets and name variables for interpretation
+```{r}
+#Roleplay: Data set where the LLM does roleplay a political stance
+roleplay <- subset(data_ai_clean, treatment %in% c("repub", "dem")) #not aligned, 2196 observations
+```
+
+```{r}
+table(roleplay$party)
+```
+
+
+```{r}
+# gender: make Binary variable (male==0, female==1)
+roleplay <- roleplay %>%
+  mutate(sex = case_when(
+      gender == "Female" ~ 1,
+      gender == "Male" ~ 0,
+      gender == "Or do you describe yourself in another way (write in gender identity)"~ 3,
+      TRUE ~ NA_real_
+    )
+  )
+#make party binary (dem==0, repub==1), follow convention for political science research
+roleplay <- roleplay %>%
+  mutate(party_binary = case_when(
+      party == "repub" ~ 1,
+      party == "dem" ~ 0,
+      TRUE ~ NA_real_
+    )
+  )
+```
+
+
+```{r}
+#Roleplay aligned: lets pretend the LLM does know the participant's political affiliation
+align <- subset(roleplay, treatment %in% c("repub", "dem") & aligned == 1) #aligned, 1104 observations
+```
+
+# Split based on GPT-4's role-play identity
+
+```{r}
+align_dem <- subset(align, treatment == "dem") # democrats, 548 observations
+align_repub <- subset(align, treatment == "repub") #republicans, 556 observations
+```
+
+
+
+
